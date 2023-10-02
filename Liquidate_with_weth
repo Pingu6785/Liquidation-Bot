@@ -78,8 +78,8 @@ contract AaveFlashLoans_Optimism is FlashLoanSimpleReceiverBase {
 
     address private constant pool = 0x794a61358D6845594F94dc1DB02A252b5b4814aD;
     address private constant tradeContract = ##############;
-    address private constant endwallet = 0xB4fb31E7B1471A8e52dD1e962A281a732EaD59c1;
-    address private constant caller = 0x45d4FfEaE43c017255e31F472eD7B39AC9aF4b52;
+    address private constant endwallet = ##############;
+    address private constant caller = ##############;
 
 
 function doFlashloan(
@@ -129,18 +129,6 @@ function executeOperation(
         uint256 profit = currentbalance - totalAmount;
         ERC20(ub).transfer(endwallet, profit);
        
-    }
-
-
-    receive () external payable {}
- 
-    function depositToken(address token, uint256 amount) external{
-        ERC20(token).transferFrom(msg.sender, address(this), amount);
-    }
- 
-    function withdraw(address token_address, uint amount) external{
-        require(msg.sender == caller, "not for you");
-        ERC20(token_address).transfer(caller, amount);
     }
 }
 
