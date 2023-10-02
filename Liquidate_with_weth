@@ -72,9 +72,9 @@ contract AaveFlashLoans_Optimism is FlashLoanSimpleReceiverBase {
     constructor(IPoolAddressesProvider provider) FlashLoanSimpleReceiverBase(provider) {}
 
     address private constant pool = 0x794a61358D6845594F94dc1DB02A252b5b4814aD;
-    address private constant tradeContract = 0x794a61358D6845594F94dc1DB02A252b5b4814aD;
-    address private constant endwallet = 0x794a61358D6845594F94dc1DB02A252b5b4814aD;
-    address private constant caller = 0x794a61358D6845594F94dc1DB02A252b5b4814aD;
+    address private constant tradeContract = #####################;
+    address private constant endwallet = #####################;;
+    address private constant caller = #####################;;
 
 function doFlashloan(
         LiqData calldata liqData,        
