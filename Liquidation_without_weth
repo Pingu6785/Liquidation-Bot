@@ -3,14 +3,27 @@ pragma solidity 0.8.10;
 
 import "https://github.com/aave/aave-v3-core/blob/master/contracts/flashloan/base/FlashLoanSimpleReceiverBase.sol";
 
+struct TradeData {
+        address tradeContract;
+        bytes32 poolId;
+        uint24 poolFee1;
+        uint24 poolFee2;
+    }
+    
+struct LiqData {
+    address ub;
+    address uc;
+    address scb;
+    address scc;
+    address wallet;
+}
+
 interface Trade_Interface {
     function trade(
-        address uc,
-        uint256 amountIn,
+        TradeData calldata tradeData,
         address ub,
-        uint24 poolFee1,
-        uint24 poolFee2,
-        address caller
+        address uc,
+        uint256 amount
     )
     external;
 }
@@ -61,29 +74,18 @@ contract AaveFlashLoans_Optimism is FlashLoanSimpleReceiverBase {
     constructor(IPoolAddressesProvider provider) FlashLoanSimpleReceiverBase(provider) {}
 
     address private constant pool = 0x794a61358D6845594F94dc1DB02A252b5b4814aD;
-    address private constant endwallet = ##########################;
-    address private constant tradeContract = ##########################;
-    address private constant caller = ##########################;
-
-struct TradeData {
-        address contract;
-        bytes32 poolId;
-        uint24 poolFee1;
-        uint24 poolFee2;
-}
+    address private constant endwallet = #######################;
+    address private constant tradeContract = #######################;
+    address private constant caller = #######################;
 
 function doFlashloan(
-        address ub,
-        uint256 borrowAmount,
-        address uc,
-        address wallet,
-        address scb,
-        address scc,
-        tradeData
+        LiqData calldata liqData,        
+        TradeData calldata tradeData,
+        uint256 borrowAmount
     ) external {
-        bytes memory params = abi.encode(ub, uc, wallet, scb, scc, tradeData);
+        bytes memory params = abi.encode(liqData, tradeData, borrowAmount);
         uint16 referral = 0;
-        LendingPool(pool).flashLoanSimple(address(this), ub, borrowAmount, params, referral);
+        LendingPool(pool).flashLoanSimple(address(this), liqData.ub, borrowAmount, params, referral);
     }
 
 function executeOperation(
@@ -94,30 +96,42 @@ function executeOperation(
         bytes calldata params
     ) external returns (bool) {
         require(initiator == address(this), "FlashBorrower: Untrusted loan initiator");
-        (address ub, address uc, address wallet, address scb, address scc, TradeData memory tradeData) = abi.decode(params, (address, address, address, address, address, tradeData));
+        (LiqData memory liqData, TradeData memory tradeData) = abi.decode(params, (LiqData, TradeData));
 
         uint256 totalAmount = amount + premium;
-        uint256 balanceSCB = ERC20(ub).balanceOf(address(this));
 
-        ERC20(ub).approve(msg.sender, totalAmount);
-        ERC20(ub).approve(scb, balanceSCB);
+        ERC20(liqData.ub).approve(msg.sender, totalAmount);
+        ERC20(liqData.ub).approve(liqData.scb, amount);
 
-        CTokenInterfaces(scb).liquidateBorrow(wallet, balanceSCB, scc);
-        CTokenInterfaces(scc).redeem(CTokenInterfaces(scc).balanceOf(address(this)));
-
-        uint256 balanceCollateral = ERC20(uc).balanceOf(address(this));
-
-        if (address(uc) == address(ub)){
-            uint256 currentbalance = ERC20(uc).balanceOf(address(this));
-            uint256 profit = currentbalance - totalAmount;
-            ERC20(uc).transfer(endwallet, profit);
+        if (address(liqData.uc) == address(liqData.ub)){
+            ERC20(liqData.uc).transfer(endwallet, ERC20(liqData.uc).balanceOf(address(this)) - totalAmount);
             }
         else{
-            ERC20(uc).approve(tradeContract, balanceCollateral);
-            Trade_Interface(tradeContract).trade(tradeData,ub, uc, amount);
-            uint256 currentbalance = ERC20(ub).balanceOf(address(this));
-            uint256 profit = currentbalance - totalAmount;
-            ERC20(ub).transfer(endwallet, profit);
+            liquidate(liqData.scb, liqData.wallet, amount, liqData.scc);
+            tradeBack(tradeData, liqData.ub, liqData.uc, amount, totalAmount);
             }
+        return(true);
     }
+
+    function liquidate(
+            address scb, 
+            address wallet, 
+            uint256 amount, 
+            address scc
+        ) internal {
+            CTokenInterfaces(scb).liquidateBorrow(wallet, amount, scc);
+            CTokenInterfaces(scc).redeem(CTokenInterfaces(scc).balanceOf(address(this)));
+    }
+
+    function tradeBack(
+        TradeData memory tradeData, 
+        address ub, 
+        address uc, 
+        uint256 amount,
+        uint256 totalAmount
+        ) internal {
+            ERC20(uc).approve(tradeContract, ERC20(uc).balanceOf(address(this)));
+            Trade_Interface(tradeContract).trade(tradeData, ub, uc, amount);
+            ERC20(ub).transfer(endwallet, (ERC20(ub).balanceOf(address(this)) - totalAmount));
+        }
 }
