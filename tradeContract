@@ -1,0 +1,41 @@
+// SPDX-License-Identifier: MIT
+pragma solidity =0.6.6;
+
+
+import "https://github.com/Uniswap/v2-periphery/blob/master/contracts/interfaces/IUniswapV2Router02.sol";
+import "https://github.com/Uniswap/v2-periphery/blob/2efa12e0f2d808d9b49737927f0e416fafa5af68/contracts/interfaces/IERC20.sol";
+
+
+
+
+contract UniswapTrade {
+    address private constant SUSHISWAP_ROUTER = 0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506;
+
+
+    function swap (
+        address uc,
+        uint256 amountIn,
+        uint256 amountOut,
+        address ub
+    ) external {
+
+
+        IERC20(uc).transferFrom(msg.sender, address(this), amountIn);
+        IERC20(uc).approve(SUSHISWAP_ROUTER, amountIn);
+
+
+        address[] memory path;
+        path = new address[](2);
+        path[0] = uc;
+        path[1] = ub;
+
+
+        IUniswapV2Router02(SUSHISWAP_ROUTER).swapExactTokensForTokens(
+            amountIn,
+            amountOut,
+            path,
+            msg.sender,
+            block.timestamp
+        );
+    }
+}
