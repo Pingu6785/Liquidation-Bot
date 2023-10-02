@@ -28,10 +28,6 @@ interface ERC20 {
     function transferFrom(address from, address to, uint256 amount) external returns (bool);
 }
 
-interface Comptroller {
-    function isMarketListed(address cTokenAddress) external view returns (bool);
-}
-
 interface CTokenInterfaces {
     function redeem(uint256 redeemTokens) external returns (uint256);
     function liquidateBorrow(address borrower, uint256 repayAmount, address cTokenCollateral) external returns (uint256);
@@ -69,6 +65,13 @@ contract AaveFlashLoans_Optimism is FlashLoanSimpleReceiverBase {
     address private constant endwallet = ##########################;;
     address private constant caller = ##########################;;
 
+struct TradeData {
+        address contract;
+        bytes32 poolId;
+        uint24 poolFee1;
+        uint24 poolFee2;
+}
+
 function doFlashloan(
         address ub,
         uint256 borrowAmount,
@@ -76,10 +79,9 @@ function doFlashloan(
         address wallet,
         address scb,
         address scc,
-        uint24 poolFee1,
-        uint24 poolFee2
+        tradeData
     ) external {
-        bytes memory params = abi.encode(ub, uc, wallet, scb, scc, poolFee1, poolFee2);
+        bytes memory params = abi.encode(ub, uc, wallet, scb, scc, tradeData);
         uint16 referral = 0;
         LendingPool(pool).flashLoanSimple(address(this), ub, borrowAmount, params, referral);
     }
@@ -92,7 +94,7 @@ function executeOperation(
         bytes calldata params
     ) external returns (bool) {
         require(initiator == address(this), "FlashBorrower: Untrusted loan initiator");
-        (address ub, address uc, address wallet, address scb, address scc, uint24 poolFee1, uint24 poolFee2) = abi.decode(params, (address, address, address, address, address, uint24, uint24));
+        (address ub, address uc, address wallet, address scb, address scc, TradeData memory tradeData) = abi.decode(params, (address, address, address, address, address, tradeData));
 
         uint256 totalAmount = amount + premium;
         uint256 balanceSCB = ERC20(ub).balanceOf(address(this));
@@ -112,7 +114,7 @@ function executeOperation(
             }
         else{
             ERC20(uc).approve(tradeContract, balanceCollateral);
-            Trade_Interface(tradeContract).trade(uc, balanceCollateral, ub, poolFee1, poolFee2, caller);
+            Trade_Interface(tradeContract).trade(tradeData);
             uint256 currentbalance = ERC20(ub).balanceOf(address(this));
             uint256 profit = currentbalance - totalAmount;
             ERC20(ub).transfer(endwallet, profit);
