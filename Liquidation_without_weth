@@ -61,7 +61,6 @@ contract AaveFlashLoans_Optimism is FlashLoanSimpleReceiverBase {
     constructor(IPoolAddressesProvider provider) FlashLoanSimpleReceiverBase(provider) {}
 
     address private constant pool = 0x794a61358D6845594F94dc1DB02A252b5b4814aD;
-    address private constant tradeContract = ##########################;
     address private constant endwallet = ##########################;;
     address private constant caller = ##########################;;
 
@@ -113,8 +112,8 @@ function executeOperation(
             ERC20(uc).transfer(endwallet, profit);
             }
         else{
-            ERC20(uc).approve(tradeContract, balanceCollateral);
-            Trade_Interface(tradeContract).trade(tradeData);
+            ERC20(uc).approve(tradeData.contract, balanceCollateral);
+            Trade_Interface(tradeData.contract).trade(tradeData,ub, uc, amount);
             uint256 currentbalance = ERC20(ub).balanceOf(address(this));
             uint256 profit = currentbalance - totalAmount;
             ERC20(ub).transfer(endwallet, profit);
