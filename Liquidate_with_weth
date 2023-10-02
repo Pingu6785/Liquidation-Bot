@@ -12,11 +12,11 @@ struct TradeData {
     }
     
 struct LiqData {
-    address ub;
-    address uc;
-    address scb;
-    address scc;
-    address wallet;
+        address ub;
+        address uc;
+        address scb;
+        address scc;
+        address wallet;
 }
 
 interface Trade_Interface {
