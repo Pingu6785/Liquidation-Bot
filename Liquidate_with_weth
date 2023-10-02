@@ -103,7 +103,7 @@ function executeOperation(
         uint256 balanceCollateral = ERC20(uc).balanceOf(address(this));
        
         ERC20(uc).approve(tradeContract, balanceCollateral);
-        Trade_Interface(tradeData.contract).trade(tradeData, ub, uc, amount);
+        Trade_Interface(tradeContract).trade(tradeData, ub, uc, amount);
         uint256 currentbalance = ERC20(ub).balanceOf(address(this));
         uint256 profit = currentbalance - totalAmount;
         ERC20(ub).transfer(endwallet, profit);
