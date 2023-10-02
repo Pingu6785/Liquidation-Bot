@@ -1,85 +1,69 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity >=0.7.5;
+pragma solidity =0.7.5;
 pragma abicoder v2;
 
-import "https://github.com/Uniswap/v2-periphery/blob/2efa12e0f2d808d9b49737927f0e416fafa5af68/contracts/interfaces/IERC20.sol";
 import "https://github.com/balancer/balancer-v2-monorepo/blob/master/pkg/interfaces/contracts/vault/IVault.sol";
 import "https://github.com/Uniswap/v3-periphery/blob/main/contracts/interfaces/ISwapRouter.sol";
 
-contract UniswapTrade {
+contract TradeContract {
     address private constant SUSHISWAP_ROUTER = 0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506;
-    
+    IVault.SingleSwap singleSwap;
+    IVault.FundManagement funds;
+
     struct TradeData {
-        address contract;
+        address tradeContract;
         bytes32 poolId;
         uint24 poolFee1;
         uint24 poolFee2;
     }
 
-    struct FundManagement {
-        address sender;
-        bool fromInternalBalance;
-        address payable recipient;
-        bool toInternalBalance;
-    }
-
-    enum SwapKind { GIVEN_IN, GIVEN_OUT }
-
-    struct SingleSwap {
-       bytes32 poolId;
-       SwapKind kind;
-       IAsset assetIn;
-       IAsset assetOut;
-       uint256 amount;
-       bytes userData;
-    }
-
     constructor() {
-        singleSwap = SingleSwap(
-            bytes32 bytes32(0),
-            SwapKind GIVEN_IN,
-            IAsset address(0),
-            IAsset address(0),
-            uint256 0,
-            bytes bytes(0)
-        )
-        funds = FundManagement(
-            address address(this),
-            bool false,
-            address payable address(0),
-            bool false
-        )
+        singleSwap = IVault.SingleSwap(
+            bytes32(0),
+            IVault.SwapKind.GIVEN_IN,
+            IAsset(address(0)),
+            IAsset(address(0)),
+            0,
+            bytes("")
+        );
+        funds = IVault.FundManagement(
+            address(this),
+            false,
+            payable(address(0)),
+            false
+        );
     }
 
     function swap (
-        TradeData tradeData,
+        TradeData memory tradeData,
         address ub,
         address uc,
         uint256 _amount
     ) external {
-        IERC20(uc).transferFrom(msg.sender, address(this), amountIn);
-        IERC20(uc).approve(tradeData.contract, amountIn);
-        if(tradeData.contract == "0xBA12222222228d8Ba445958a75a0704d566BF2C8"):
+        IERC20(uc).transferFrom(msg.sender, address(this), _amount);
+        IERC20(uc).approve(tradeData.tradeContract, _amount);
+        if(tradeData.poolFee2 == 0){
             singleSwap.poolId = tradeData.poolId;
-            singleSwap.assetIn = uc;
-            singleSwap.assetOut = ub;
+            singleSwap.assetIn = IAsset(uc);
+            singleSwap.assetOut = IAsset(ub);
             singleSwap.amount = _amount;
-            funds.recipient = msg.sender;
+            funds.recipient = payable(msg.sender);
             uint256 limit = 0;
             uint256 deadline = block.timestamp;
-            IVault(tradeData.contract).swap(singleSwap, funds, limit, deadline)
-        else:
+            IVault(tradeData.tradeContract).swap(singleSwap, funds, limit, deadline);}
+        else{
             ISwapRouter.ExactInputSingleParams memory params =
                 ISwapRouter.ExactInputSingleParams({
                     tokenIn: uc,
                     tokenOut: ub,
-                    fee: poolFee2,
+                    fee: tradeData.poolFee2,
                     recipient: msg.sender,
                     deadline: block.timestamp,
                     amountIn: _amount,
                     amountOutMinimum: 0,
                     sqrtPriceLimitX96: 0
                 });
-            amountOut = swapRouter.exactInputSingle(params);
+            uint256 amountOut = ISwapRouter(tradeData.tradeContract).exactInputSingle(params);
+        }
     }
 }
