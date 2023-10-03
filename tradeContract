@@ -6,7 +6,6 @@ import "https://github.com/balancer/balancer-v2-monorepo/blob/master/pkg/interfa
 import "https://github.com/Uniswap/v3-periphery/blob/main/contracts/interfaces/ISwapRouter.sol";
 
 contract TradeContract {
-    address private constant SUSHISWAP_ROUTER = 0x1b02dA8Cb0d097eB8D57A175b88c7D8b47997506;
     IVault.SingleSwap singleSwap;
     IVault.FundManagement funds;
 
